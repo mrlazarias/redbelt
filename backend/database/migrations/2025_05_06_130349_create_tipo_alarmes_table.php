@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('tipo_alarmes', function (Blueprint $table) {
             $table->id();
+            $table->string('nome')->unique();
             $table->timestamps();
         });
     }
