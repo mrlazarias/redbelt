@@ -134,29 +134,47 @@ const AlarmeForm = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center mb-6">
-        <Link to="/alarmes" className="text-blue-600 hover:text-blue-800 mr-4">
-          &larr; Voltar para Alarmes
-        </Link>
-        <h1 className="text-2xl font-bold">
-          {isEditMode ? 'Editar Alarme' : 'Novo Alarme'}
+    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
+          {isEditMode ? "Editar Alarme" : "Novo Alarme"}
         </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
+          {isEditMode ? "Edite os dados do alarme" : "Preencha os dados para cadastrar um novo alarme"}
+        </p>
       </div>
-      
-      {(localError || error) && (
-        <div className="alert alert-error" role="alert">
-          <p>{localError || error}</p>
+
+      {localError && (
+        <div className="mb-6 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4 rounded-md">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700 dark:text-red-200">{localError}</p>
+            </div>
+          </div>
         </div>
       )}
-      
-      {(localSuccess || success) && (
-        <div className="alert alert-success" role="alert">
-          <p>{localSuccess || success}</p>
+
+      {localSuccess && (
+        <div className="mb-6 bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-4 rounded-md">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-green-700 dark:text-green-200">{localSuccess}</p>
+            </div>
+          </div>
         </div>
       )}
-      
-      <div className="card">
+
+      <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <label htmlFor="tipo" className="form-label">

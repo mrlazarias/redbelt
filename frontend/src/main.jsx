@@ -6,12 +6,16 @@ import './index.css'
 import api from './services/api.js'
 import store from './redux/store.js'
 import { initRedux } from './redux/initRedux.js'
+import { initializeTheme } from './redux/slices/themeSlice.js'
 
 // Define o Axios global para uso em componentes que não utilizam o serviço diretamente
 window.axios = api;
 
 // Inicializar Redux
 initRedux();
+
+// Inicializar tema
+initializeTheme();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
