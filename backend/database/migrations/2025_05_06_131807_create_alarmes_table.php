@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('tipo_alarme_id');
-            $table->string('criticidade');
-            $table->integer('status');
-            $table->boolean('ativo')->default(true);
+            $table->tinyInteger('criticidade')->comment('0=info, 1=baixo, 2=médio, 3=alto, 4=crítico');
+            $table->tinyInteger('status')->comment('0=fechado, 1=aberto, 2=em andamento');
+            $table->tinyInteger('ativo')->default(1)->comment('0=desativado, 1=ativo');
             $table->dateTime('data_ocorrencia');
             $table->string('tipo');
             $table->softDeletes();

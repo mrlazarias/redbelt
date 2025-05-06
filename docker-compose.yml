@@ -1,8 +1,11 @@
 version: '3.8'
 
 services:
-  app:
-    build: ./backend
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: redbelt-backend
     volumes:
       - ./backend:/var/www/html
     ports:
@@ -10,30 +13,58 @@ services:
     depends_on:
       - mysql
       - redis
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=laravel
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+      - REDIS_HOST=redis
+      - APP_URL=http://localhost:8000
+    networks:
+      - redbelt-network
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: redbelt-frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000/api
+    networks:
+      - redbelt-network
 
   mysql:
     image: mysql:8
+    container_name: redbelt-mysql
     environment:
       MYSQL_DATABASE: laravel
       MYSQL_ROOT_PASSWORD: root
     ports:
       - "3306:3306"
     volumes:
-      - dbdata:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
+    networks:
+      - redbelt-network
 
   redis:
     image: redis:alpine
+    container_name: redbelt-redis
     ports:
       - "6379:6379"
+    networks:
+      - redbelt-network
 
-  node:
-    image: node:20
-    working_dir: /app
-    volumes:
-      - ./frontend:/app
-    command: sh -c "npm install && npm run dev"
-    ports:
-      - "5173:5173"
+networks:
+  redbelt-network:
+    driver: bridge
 
 volumes:
-  dbdata:
+  mysql-data:
