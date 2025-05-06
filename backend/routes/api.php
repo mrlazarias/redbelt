@@ -23,6 +23,8 @@ Route::middleware('auth:sanctum')->post('/logout', [AuthenticatedSessionControll
 
 // Rotas protegidas - requerem autenticação
 Route::middleware('auth:sanctum')->group(function () {
+    // Rota de estatísticas deve vir antes da resource para evitar conflito
+    Route::get('alarmes/stats', [AlarmeController::class, 'stats']);
     Route::apiResource('alarmes', AlarmeController::class);
     Route::apiResource('tipo-alarmes', TipoAlarmeController::class);
 

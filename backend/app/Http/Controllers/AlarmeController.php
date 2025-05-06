@@ -105,4 +105,20 @@ class AlarmeController extends Controller
 
         return response()->json(null, 204);
     }
+
+    /**
+     * Get statistics about alarmes.
+     */
+    public function stats()
+    {
+        $totalAlarmes = Alarme::count();
+        $alarmesAtivos = Alarme::where('ativo', true)->count();
+        $alarmesResolvidos = Alarme::where('ativo', false)->count();
+        
+        return response()->json([
+            'totalAlarmes' => $totalAlarmes,
+            'alarmesAtivos' => $alarmesAtivos,
+            'alarmesResolvidos' => $alarmesResolvidos
+        ]);
+    }
 }
