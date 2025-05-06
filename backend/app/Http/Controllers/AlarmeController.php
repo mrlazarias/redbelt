@@ -9,6 +9,8 @@ use App\Models\Alarme;
 use App\Models\TipoAlarme;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Validation\Rule;
 
 class AlarmeController extends Controller
@@ -18,6 +20,14 @@ class AlarmeController extends Controller
      */
     public function index(Request $request)
     {
+        // Criar uma chave de cache única baseada nos parâmetros da requisição
+        $cacheKey = 'alarmes:' . md5(json_encode($request->all()));
+        
+        // Verificar se os dados já estão em cache
+        if (Redis::exists($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+        
         $query = Alarme::with(['user', 'tipoAlarme']);
 
         // Filtros
@@ -43,7 +53,12 @@ class AlarmeController extends Controller
         }
 
         // Paginação
-        return $query->paginate($request->get('per_page', 10));
+        $results = $query->paginate($request->get('per_page', 10));
+        
+        // Armazenar em cache por 5 minutos
+        Cache::put($cacheKey, $results, 300);
+        
+        return $results;
     }
 
     /**
@@ -95,6 +110,9 @@ class AlarmeController extends Controller
         
         // Disparar o job para processamento em background
         CreateAlarmeJob::dispatch($data, Auth::id());
+        
+        // Invalidar o cache após adicionar novo alarme
+        $this->invalidateAlarmeCache();
 
         // Retornar uma prévia do alarme para feedback imediato
         $alarme = new Alarme($preview);
@@ -110,7 +128,11 @@ class AlarmeController extends Controller
      */
     public function show(Alarme $alarme)
     {
-        return response()->json($alarme->load(['user', 'tipoAlarme']));
+        $cacheKey = 'alarme:' . $alarme->id;
+        
+        return Cache::remember($cacheKey, 300, function () use ($alarme) {
+            return response()->json($alarme->load(['user', 'tipoAlarme']));
+        });
     }
 
     /**
@@ -166,6 +188,9 @@ class AlarmeController extends Controller
 
         // Disparar o job para processamento em background
         UpdateAlarmeJob::dispatch($alarme->id, $data);
+        
+        // Invalidar caches relacionados
+        $this->invalidateAlarmeCache($alarme->id);
 
         return response()->json([
             'message' => 'Atualização de alarme enviada para processamento',
@@ -187,6 +212,9 @@ class AlarmeController extends Controller
 
         // Disparar o job para processamento em background
         DeleteAlarmeJob::dispatch($alarme->id, Auth::id());
+        
+        // Invalidar caches relacionados
+        $this->invalidateAlarmeCache($alarme->id);
 
         return response()->json([
             'message' => 'Solicitação de exclusão enviada para processamento',
@@ -199,14 +227,36 @@ class AlarmeController extends Controller
      */
     public function stats()
     {
-        $totalAlarmes = Alarme::count();
-        $alarmesAtivos = Alarme::where('ativo', Alarme::ATIVO_ATIVO)->count();
-        $alarmesResolvidos = Alarme::where('status', Alarme::STATUS_FECHADO)->count();
+        return Cache::remember('alarmes:stats', 300, function () {
+            $totalAlarmes = Alarme::count();
+            $alarmesAtivos = Alarme::where('ativo', Alarme::ATIVO_ATIVO)->count();
+            $alarmesResolvidos = Alarme::where('status', Alarme::STATUS_FECHADO)->count();
+            
+            return response()->json([
+                'totalAlarmes' => $totalAlarmes,
+                'alarmesAtivos' => $alarmesAtivos,
+                'alarmesResolvidos' => $alarmesResolvidos
+            ]);
+        });
+    }
+    
+    /**
+     * Invalidar cache relacionado a alarmes
+     */
+    protected function invalidateAlarmeCache($alarmeId = null)
+    {
+        // Limpar estatísticas
+        Cache::forget('alarmes:stats');
         
-        return response()->json([
-            'totalAlarmes' => $totalAlarmes,
-            'alarmesAtivos' => $alarmesAtivos,
-            'alarmesResolvidos' => $alarmesResolvidos
-        ]);
+        // Se informado um alarme específico, remove seu cache individual
+        if ($alarmeId) {
+            Cache::forget('alarme:' . $alarmeId);
+        }
+        
+        // Remove todos os caches de listagem (usando pattern)
+        $keys = Redis::keys('alarmes:*');
+        if (!empty($keys)) {
+            Redis::del(...$keys);
+        }
     }
 }
