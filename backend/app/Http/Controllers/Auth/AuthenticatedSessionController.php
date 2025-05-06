@@ -30,7 +30,11 @@ class AuthenticatedSessionController extends Controller
     public function destroy(Request $request)
     {
         Auth::guard('web')->logout();
-        $request->user()->currentAccessToken()->delete();
+        
+        // Verificar se o usuário está usando tokens antes de tentar deletar
+        if ($request->user() && method_exists($request->user(), 'currentAccessToken')) {
+            $request->user()->currentAccessToken()->delete();
+        }
 
         return response()->json(['message' => 'Logged out successfully']);
     }
