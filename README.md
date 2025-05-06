@@ -2,7 +2,6 @@
 
 Um sistema moderno para gerenciamento de alarmes de incidentes de segurança, permitindo que analistas SOC possam cadastrar, listar e gerenciar alarmes de forma eficiente.
 
-![Redbelt Security Alarm System](https://via.placeholder.com/800x400/0A84FF/FFFFFF?text=Redbelt+Security+Alarm+System)
 
 ## 📋 Sumário
 
