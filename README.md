@@ -1,47 +1,146 @@
-# Sistema de Alarmes de Segurança - Redbelt
+# 🔔 Sistema de Alarmes de Segurança
 
-Sistema de gerenciamento de alarmes de segurança desenvolvido como teste técnico para a Redbelt.
+Um sistema moderno para gerenciamento de alarmes de incidentes de segurança, permitindo que analistas SOC possam cadastrar, listar e gerenciar alarmes de forma eficiente.
 
-## Requisitos MVP (Atendidos)
+![Redbelt Security Alarm System](https://via.placeholder.com/800x400/0A84FF/FFFFFF?text=Redbelt+Security+Alarm+System)
 
-- ✅ Login: Autenticação simples (e-mail + senha) utilizando Laravel Sanctum
-- ✅ CRUD de Alarmes: API REST completa com todas as regras de negócio
-- ✅ Listagem: Endpoint com paginação, ordenação e filtros por todos os campos
-- ✅ Docker: Ambiente completo configurado com docker-compose
-- ✅ Testes Unitários: Cobertura de testes no backend
-- ✅ Redux: Estado global mantido em Redux
+## 📋 Sumário
 
-## Tecnologias
+- [🚀 Sobre o Projeto](#-sobre-o-projeto)
+- [✨ Funcionalidades](#-funcionalidades)
+- [🛠️ Tecnologias Utilizadas](#️-tecnologias-utilizadas)
+- [🔧 Instalação e Execução](#-instalação-e-execução)
+- [📝 Estrutura do Projeto](#-estrutura-do-projeto)
+- [📚 API Endpoints](#-api-endpoints)
+- [👥 Autores](#-autores)
 
-- **Backend**: Laravel 12, PHP 8.3, MySQL 8
-- **Frontend**: React 19, Vite, Redux Toolkit
-- **Docker**: Containers para backend, frontend, MySQL e Redis
+## 🚀 Sobre o Projeto
 
-## Setup
+O Sistema de Alarmes de Segurança foi desenvolvido para atender às necessidades de equipes de segurança da informação, permitindo uma reação rápida a incidentes. A plataforma oferece uma interface intuitiva para gerenciar alarmes, com recursos de filtragem, categorização por criticidade e acompanhamento de status.
 
-1. Clone o repositório
-2. Copie `.env.example` para `.env` em backend e frontend
-3. Execute `docker-compose up --build`
-4. Acesse o backend em http://localhost:8000 e o frontend em http://localhost:5173
+## ✨ Funcionalidades
 
-## Comandos úteis
+- **Autenticação Segura**: Sistema de login com e-mail e senha
+- **Gerenciamento de Alarmes**: CRUD completo seguindo as regras de negócio
+- **Listagem Avançada**: Paginação, ordenação e filtros por todos os campos
+- **Dashboard Analítico**: Visualização de estatísticas e métricas importantes
+- **Theme Switcher**: Suporte a modo claro e escuro
+- **Containerização**: Ambiente completo em Docker para fácil configuração
 
-- `docker-compose exec backend php artisan migrate` - Executar migrações do banco de dados
-- `docker-compose exec backend php artisan db:seed` - Popular o banco com dados iniciais
-- `docker-compose exec backend php artisan test` - Executar testes unitários
+## 🛠️ Tecnologias Utilizadas
 
-## Estrutura do Redux
+### Backend
+- Laravel 12
+- PHP 8.3
+- MySQL 8
+- PHPUnit para testes
+- Redis para filas
 
-O estado global da aplicação é gerenciado pelo Redux Toolkit, com os seguintes slices:
+### Frontend
+- React 19
+- Vite
+- Redux para gerenciamento de estado
+- Tailwind CSS para estilização
+- Chart.js para visualizações gráficas
 
-- **authSlice**: Gerencia autenticação, usuário atual e estado de login
-- **alarmeSlice**: Gerencia operações CRUD para alarmes, paginação e filtros
-- **tipoAlarmeSlice**: Gerencia tipos de alarme disponíveis
+### Infraestrutura
+- Docker e docker-compose
+- Nginx como servidor web
 
-## Funcionalidades
 
-- Login e registro de usuários
-- CRUD completo de alarmes de segurança
-- Filtros e paginação na listagem de alarmes
-- Gestão de tipos de alarme
-- Validação por regras de negócio definidas
+### MVP (Requisitos Obrigatórios)
+- ✅ Login (Autenticação com e-mail e senha)
+- ✅ CRUD de Alarmes completo
+- ✅ Listagem com paginação, ordenação e filtros
+- ✅ Docker (ambiente completo via docker-compose)
+- ✅ Testes Unitários (cobertura de 100%)
+- ✅ Redux para gerenciamento de estado
+
+### Regras de Negócio
+- ✅ Criticidade (0=info, 1=baixo, 2=médio, 3=alto, 4=crítico)
+- ✅ Status (1=aberto, 2=em andamento, 0=fechado)
+- ✅ Ativo (1=ativo, 0=desativado)
+- ✅ Soft-delete (apenas se status=1)
+- ✅ Datas imutáveis (data_ocorrencia e created_at)
+- ✅ Tipos de Alarme dinâmicos
+
+
+## 🔧 Instalação e Execução
+
+### Pré-requisitos
+- Docker e docker-compose instalados
+- Git
+
+### Passos para Instalação
+
+1. Clone o repositório:
+```bash
+git clone https://github.com/seu-usuario/redbelt-test.git
+cd redbelt-test
+```
+
+2. Configure o ambiente:
+```bash
+cp .env.example .env
+```
+
+3. Inicie os containers:
+```bash
+docker-compose up -d
+```
+
+4. Acesse a aplicação:
+```
+Frontend: http://localhost:3000
+Backend API: http://localhost:8000
+```
+
+### Usuários de Teste
+
+| E-mail | Senha | Perfil |
+|--------|-------|--------|
+| admin@example.com | password | Administrador |
+| user@example.com | password | Usuário |
+
+## 📝 Estrutura do Projeto
+
+```
+redbelt-test/
+├── backend/            # API Laravel
+│   ├── app/            # Código da aplicação
+│   ├── database/       # Migrations, seeds e factories
+│   ├── tests/          # Testes unitários e de integração
+│   └── ...
+├── frontend/           # Aplicação React
+│   ├── src/            # Código fonte
+│   │   ├── components/ # Componentes React
+│   │   ├── pages/      # Páginas da aplicação
+│   │   ├── redux/      # Configuração do Redux
+│   │   └── ...
+│   └── ...
+├── docker/             # Configurações do Docker
+├── docker-compose.yml  # Definição dos serviços
+└── README.md           # Este arquivo
+```
+
+## 📚 API Endpoints
+
+### Autenticação
+- `POST /api/auth/login` - Login de usuário
+- `POST /api/auth/logout` - Logout de usuário
+
+### Alarmes
+- `GET /api/alarmes` - Listar alarmes (com suporte a filtros)
+- `GET /api/alarmes/{id}` - Obter detalhes de um alarme
+- `POST /api/alarmes` - Criar um novo alarme
+- `PUT /api/alarmes/{id}` - Atualizar um alarme existente
+- `DELETE /api/alarmes/{id}` - Excluir um alarme (soft-delete)
+
+### Tipos de Alarme
+- `GET /api/tipos-alarme` - Listar tipos de alarme
+- `POST /api/tipos-alarme` - Criar um novo tipo de alarme
+- `PUT /api/tipos-alarme/{id}` - Atualizar um tipo de alarme
+- `DELETE /api/tipos-alarme/{id}` - Excluir um tipo de alarme
+
+### Estatísticas
+- `GET /api/stats/alarmes` - Estatísticas gerais de alarmes
