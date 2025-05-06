@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\TipoAlarme\CreateTipoAlarmeJob;
+use App\Jobs\TipoAlarme\UpdateTipoAlarmeJob;
+use App\Jobs\TipoAlarme\DeleteTipoAlarmeJob;
 use App\Models\TipoAlarme;
 use Illuminate\Http\Request;
 
@@ -24,8 +27,17 @@ class TipoAlarmeController extends Controller
             'nome' => 'required|string|unique:tipo_alarmes'
         ]);
 
-        $tipo = TipoAlarme::create($data);
-        return response()->json($tipo, 201);
+        // Criar um modelo temporário para preview
+        $preview = new TipoAlarme($data);
+        
+        // Disparar o job para processamento em background
+        CreateTipoAlarmeJob::dispatch($data);
+
+        return response()->json([
+            'message' => 'Tipo de alarme enviado para processamento',
+            'tipo_alarme' => $preview,
+            'job_dispatched' => true
+        ], 202);
     }
 
     /**
@@ -48,8 +60,20 @@ class TipoAlarmeController extends Controller
             'nome' => 'required|string|unique:tipo_alarmes,nome,' . $id,
         ]);
         
-        $tipoAlarme->update($data);
-        return response()->json($tipoAlarme);
+        // Criar uma prévia para feedback imediato
+        $preview = $tipoAlarme->toArray();
+        foreach ($data as $key => $value) {
+            $preview[$key] = $value;
+        }
+        
+        // Disparar o job para processamento em background
+        UpdateTipoAlarmeJob::dispatch($tipoAlarme->id, $data);
+
+        return response()->json([
+            'message' => 'Atualização de tipo de alarme enviada para processamento',
+            'tipo_alarme' => $preview,
+            'job_dispatched' => true
+        ], 202);
     }
 
     /**
@@ -58,8 +82,13 @@ class TipoAlarmeController extends Controller
     public function destroy(string $id)
     {
         $tipoAlarme = TipoAlarme::findOrFail($id);
-        $tipoAlarme->delete();
         
-        return response()->json(null, 204);
+        // Disparar o job para processamento em background
+        DeleteTipoAlarmeJob::dispatch($tipoAlarme->id);
+        
+        return response()->json([
+            'message' => 'Solicitação de exclusão enviada para processamento',
+            'job_dispatched' => true
+        ], 202);
     }
 }

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\Alarme\CreateAlarmeJob;
+use App\Jobs\Alarme\UpdateAlarmeJob;
+use App\Jobs\Alarme\DeleteAlarmeJob;
 use App\Models\Alarme;
 use App\Models\TipoAlarme;
 use Illuminate\Http\Request;
@@ -80,19 +83,26 @@ class AlarmeController extends Controller
             'novo_tipo_alarme' => 'nullable|string|required_without:tipo_alarme_id'
         ]);
 
-        // Se não tiver tipo_alarme_id mas tiver um novo tipo, criar o tipo
+        // Se o alarme deve ser criado imediatamente para exibição ao usuário
         if (empty($data['tipo_alarme_id']) && !empty($data['novo_tipo_alarme'])) {
             $tipoAlarme = TipoAlarme::firstOrCreate(['nome' => $data['novo_tipo_alarme']]);
             $data['tipo_alarme_id'] = $tipoAlarme->id;
         }
 
-        // Remover campo não-mapeado
-        unset($data['novo_tipo_alarme']);
+        // Preparar dados para visualização imediata
+        $preview = $data;
+        $preview['user_id'] = Auth::id();
+        
+        // Disparar o job para processamento em background
+        CreateAlarmeJob::dispatch($data, Auth::id());
 
-        $data['user_id'] = Auth::id();
-        $alarme = Alarme::create($data);
-
-        return response()->json($alarme, 201);
+        // Retornar uma prévia do alarme para feedback imediato
+        $alarme = new Alarme($preview);
+        return response()->json([
+            'message' => 'Alarme enviado para processamento',
+            'alarme' => $alarme,
+            'job_dispatched' => true
+        ], 202);
     }
 
     /**
@@ -140,17 +150,28 @@ class AlarmeController extends Controller
             'novo_tipo_alarme' => 'nullable|string'
         ]);
 
-        // Se informou um novo tipo de alarme
-        if (!empty($data['novo_tipo_alarme'])) {
-            $tipoAlarme = TipoAlarme::firstOrCreate(['nome' => $data['novo_tipo_alarme']]);
-            $data['tipo_alarme_id'] = $tipoAlarme->id;
+        // Para feedback imediato, preparar uma prévia das mudanças
+        $preview = $alarme->toArray();
+        foreach ($data as $key => $value) {
+            if ($key !== 'novo_tipo_alarme') {
+                $preview[$key] = $value;
+            }
         }
 
-        // Remover campo não-mapeado
-        unset($data['novo_tipo_alarme']);
+        // Se informou um novo tipo de alarme, criar para feedback imediato
+        if (!empty($data['novo_tipo_alarme'])) {
+            $tipoAlarme = TipoAlarme::firstOrCreate(['nome' => $data['novo_tipo_alarme']]);
+            $preview['tipo_alarme_id'] = $tipoAlarme->id;
+        }
 
-        $alarme->update($data);
-        return response()->json($alarme);
+        // Disparar o job para processamento em background
+        UpdateAlarmeJob::dispatch($alarme->id, $data);
+
+        return response()->json([
+            'message' => 'Atualização de alarme enviada para processamento',
+            'alarme' => $preview,
+            'job_dispatched' => true
+        ], 202);
     }
 
     /**
@@ -164,13 +185,13 @@ class AlarmeController extends Controller
             ], 403);
         }
 
-        // Aplicar regras de soft-delete
-        $alarme->ativo = Alarme::ATIVO_DESATIVADO;
-        $alarme->deleted_by = Auth::id();
-        $alarme->save();
-        $alarme->delete();
+        // Disparar o job para processamento em background
+        DeleteAlarmeJob::dispatch($alarme->id, Auth::id());
 
-        return response()->json(null, 204);
+        return response()->json([
+            'message' => 'Solicitação de exclusão enviada para processamento',
+            'job_dispatched' => true
+        ], 202);
     }
 
     /**
