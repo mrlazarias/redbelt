@@ -1,52 +1,36 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchAlarmes, fetchAlarmeStats } from '../redux/slices/alarmeSlice';
+import { fetchTipoAlarmes } from '../redux/slices/tipoAlarmeSlice';
 
 const Dashboard = () => {
-  const { user } = useAuth();
-  const [alarmes, setAlarmes] = useState([]);
-  const [tiposAlarme, setTiposAlarme] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [stats, setStats] = useState({
-    totalAlarmes: 0,
-    alarmesAtivos: 0,
-    alarmesResolvidos: 0
-  });
+  const dispatch = useDispatch();
+  const { user } = useSelector(state => state.auth);
+  const { alarmes, stats, loading: alarmesLoading, error: alarmesError } = useSelector(state => state.alarmes);
+  const { tipoAlarmes, loading: tiposLoading } = useSelector(state => state.tipoAlarmes);
+  
+  const loading = alarmesLoading || tiposLoading;
+  const error = alarmesError;
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
       try {
         // Carregar alarmes recentes
-        const alarmesRes = await api.get('/alarmes?per_page=5');
-        const alarmesData = alarmesRes.data.data || alarmesRes.data;
-        setAlarmes(Array.isArray(alarmesData) ? alarmesData : []);
+        dispatch(fetchAlarmes({ per_page: 5 }));
         
         // Carregar tipos de alarme
-        const tiposRes = await api.get('/tipo-alarmes');
-        const tiposData = tiposRes.data.data || tiposRes.data;
-        setTiposAlarme(Array.isArray(tiposData) ? tiposData : []);
+        dispatch(fetchTipoAlarmes());
         
         // Carregar estatísticas
-        const statsRes = await api.get('/alarmes/stats');
-        setStats(statsRes.data || {
-          totalAlarmes: 0,
-          alarmesAtivos: 0,
-          alarmesResolvidos: 0
-        });
-        
+        dispatch(fetchAlarmeStats());
       } catch (err) {
         console.error('Erro ao carregar dados do dashboard:', err);
-        setError('Não foi possível carregar os dados. Tente novamente mais tarde.');
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [dispatch]);
 
   if (loading) {
     return (
@@ -164,11 +148,11 @@ const Dashboard = () => {
           <Link to="/tipo-alarmes" className="text-blue-600 hover:text-blue-800">Ver todos</Link>
         </div>
         
-        {tiposAlarme.length === 0 ? (
+        {tipoAlarmes.length === 0 ? (
           <p className="text-gray-500">Nenhum tipo de alarme registrado.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tiposAlarme.map((tipo) => (
+            {tipoAlarmes.map((tipo) => (
               <div key={tipo.id} className="border border-gray-200 rounded-md p-4">
                 <h3 className="font-medium text-gray-700">{tipo.nome}</h3>
                 <p className="text-sm text-gray-500 mt-1">{tipo.descricao || 'Sem descrição'}</p>

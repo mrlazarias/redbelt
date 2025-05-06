@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useAuth } from '../contexts/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import api from '../services/api';
 
 const RegisterPage = () => {
-  const { register: registerUser } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [registerError, setRegisterError] = useState('');
@@ -17,7 +18,15 @@ const RegisterPage = () => {
     setRegisterError('');
     
     try {
-      await registerUser(data.name, data.email, data.password);
+      // Como não temos uma action específica para registro no Redux,
+      // vamos usar o api diretamente e navegar para o login após o sucesso
+      await api.post('/register', {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        password_confirmation: data.password
+      });
+      
       navigate('/login', { state: { message: 'Cadastro realizado com sucesso! Faça login para continuar.' } });
     } catch (err) {
       console.error('Erro de registro:', err);

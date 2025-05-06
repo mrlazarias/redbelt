@@ -1,100 +1,76 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../services/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchAlarmes, deleteAlarme, setCurrentPage } from '../redux/slices/alarmeSlice';
+import { fetchTipoAlarmes } from '../redux/slices/tipoAlarmeSlice';
+import { 
+  STATUS_ALARME, 
+  STATUS_ALARME_COLORS, 
+  CRITICIDADE_ALARME, 
+  CRITICIDADE_ALARME_COLORS,
+  ATIVO_STATUS,
+  ATIVO_STATUS_COLORS
+} from '../constants';
 
 const AlarmesList = () => {
-  const [alarmes, setAlarmes] = useState([]);
-  const [tiposAlarme, setTiposAlarme] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const { alarmes, pagination, loading, error } = useSelector(state => state.alarmes);
+  const { tipoAlarmes } = useSelector(state => state.tipoAlarmes);
   
   // Filtros e paginação
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [perPage] = useState(10);
 
-  const fetchAlarmes = async () => {
-    setLoading(true);
-    try {
-      // Construir query params para a API
-      const params = new URLSearchParams({
-        page: currentPage,
-        per_page: perPage
-      });
-      
-      if (searchTerm) params.append('search', searchTerm);
-      if (filtroStatus) params.append('status', filtroStatus);
-      if (filtroTipo) params.append('tipo_alarme_id', filtroTipo);
-      
-      const response = await api.get(`/alarmes?${params.toString()}`);
-      
-      // Verificar se response.data.data existe, se não, usar response.data
-      const alarmesData = response.data.data || response.data;
-      setAlarmes(Array.isArray(alarmesData) ? alarmesData : []);
-      
-      // Calcular total de páginas
-      const total = response.data.total || alarmesData.length;
-      setTotalPages(Math.ceil(total / perPage));
-      
-    } catch (err) {
-      console.error('Erro ao carregar alarmes:', err);
-      setError('Não foi possível carregar os alarmes. Tente novamente mais tarde.');
-      setAlarmes([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTiposAlarme = async () => {
-    try {
-      const response = await api.get('/tipo-alarmes');
-      // Verificar se a resposta é um array ou está dentro de data
-      const tiposData = response.data.data || response.data;
-      setTiposAlarme(Array.isArray(tiposData) ? tiposData : []);
-    } catch (err) {
-      console.error('Erro ao carregar tipos de alarme:', err);
-      setTiposAlarme([]);
-    }
+  const loadAlarmes = () => {
+    // Construir parâmetros para a API
+    const params = {
+      page: pagination.current_page,
+      per_page: perPage
+    };
+    
+    if (searchTerm) params.search = searchTerm;
+    if (filtroStatus) params.status = filtroStatus;
+    if (filtroTipo) params.tipo_alarme_id = filtroTipo;
+    
+    dispatch(fetchAlarmes(params));
   };
 
   useEffect(() => {
     // Carregar tipos de alarme apenas uma vez
-    fetchTiposAlarme();
-  }, []);
+    dispatch(fetchTipoAlarmes());
+  }, [dispatch]);
 
   useEffect(() => {
     // Recarregar alarmes quando os filtros ou a página mudar
-    fetchAlarmes();
-  }, [currentPage, filtroStatus, filtroTipo]);
+    loadAlarmes();
+  }, [pagination.current_page, filtroStatus, filtroTipo, dispatch]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setCurrentPage(1); // Voltar para a primeira página ao pesquisar
-    fetchAlarmes();
+    dispatch(setCurrentPage(1)); // Voltar para a primeira página ao pesquisar
+    loadAlarmes();
   };
 
   const handleReset = () => {
     setSearchTerm('');
     setFiltroStatus('');
     setFiltroTipo('');
-    setCurrentPage(1);
+    dispatch(setCurrentPage(1));
   };
 
   const handlePageChange = (page) => {
-    if (page > 0 && page <= totalPages) {
-      setCurrentPage(page);
+    if (page > 0 && page <= Math.ceil(pagination.total / perPage)) {
+      dispatch(setCurrentPage(page));
     }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este alarme?')) {
       try {
-        await api.delete(`/alarmes/${id}`);
-        // Recarregar a lista após excluir
-        fetchAlarmes();
+        await dispatch(deleteAlarme(id)).unwrap();
+        // O estado já é atualizado pelo Redux após a exclusão ser concluída
       } catch (err) {
         console.error('Erro ao excluir alarme:', err);
         alert('Não foi possível excluir o alarme. Tente novamente.');
@@ -142,7 +118,7 @@ const AlarmesList = () => {
               className="form-input"
             >
               <option value="">Todos</option>
-              {tiposAlarme && tiposAlarme.length > 0 && tiposAlarme.map((tipo) => (
+              {tipoAlarmes && tipoAlarmes.length > 0 && tipoAlarmes.map((tipo) => (
                 <option key={tipo.id} value={tipo.id}>
                   {tipo.nome}
                 </option>
@@ -161,9 +137,11 @@ const AlarmesList = () => {
               className="form-input"
             >
               <option value="">Todos</option>
-              <option value="1">Pendente</option>
-              <option value="2">Em andamento</option>
-              <option value="3">Resolvido</option>
+              {Object.entries(STATUS_ALARME).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
           </div>
           
@@ -211,10 +189,16 @@ const AlarmesList = () => {
                     Tipo
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Criticidade
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Data de Ocorrência
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ativo
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ações
@@ -233,27 +217,38 @@ const AlarmesList = () => {
                       {alarme.tipo_alarme ? alarme.tipo_alarme.nome : 'Não definido'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        CRITICIDADE_ALARME_COLORS[alarme.criticidade] || 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {CRITICIDADE_ALARME[alarme.criticidade] || 'Desconhecido'} ({alarme.criticidade})
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       {alarme.data_ocorrencia ? new Date(alarme.data_ocorrencia).toLocaleString('pt-BR') : 'Não definido'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        alarme.status === 3 ? 'bg-green-100 text-green-800' : 
-                        alarme.status === 2 ? 'bg-blue-100 text-blue-800' : 
-                        'bg-yellow-100 text-yellow-800'
+                        STATUS_ALARME_COLORS[alarme.status] || 'bg-gray-100 text-gray-800'
                       }`}>
-                        {alarme.status === 3 ? 'Resolvido' : 
-                         alarme.status === 2 ? 'Em andamento' : 'Pendente'}
+                        {STATUS_ALARME[alarme.status] || 'Desconhecido'} ({alarme.status})
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        ATIVO_STATUS_COLORS[alarme.ativo] || 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {ATIVO_STATUS[alarme.ativo] || 'Desconhecido'} ({alarme.ativo})
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link 
                         to={`/alarmes/${alarme.id}/editar`} 
-                        className="text-blue-600 hover:text-blue-900 mr-4"
+                        className="text-indigo-600 hover:text-indigo-900 mr-4"
                       >
                         Editar
                       </Link>
-                      <button 
-                        onClick={() => handleDelete(alarme.id)} 
+                      <button
+                        onClick={() => handleDelete(alarme.id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Excluir
@@ -264,40 +259,52 @@ const AlarmesList = () => {
               </tbody>
             </table>
           </div>
-          
-          {/* Paginação */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Mostrando página <span className="font-medium">{currentPage}</span> de{' '}
-                <span className="font-medium">{totalPages}</span>
-              </p>
-            </div>
-            <div className="flex space-x-2">
+        </div>
+      )}
+      
+      {/* Paginação */}
+      {!loading && alarmes.length > 0 && (
+        <div className="flex justify-center mt-6">
+          <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            <button
+              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+              onClick={() => handlePageChange(pagination.current_page - 1)}
+              disabled={pagination.current_page === 1}
+            >
+              <span className="sr-only">Anterior</span>
+              &laquo;
+            </button>
+            
+            {/* Mostrar páginas */}
+            {Array.from(
+              { length: Math.ceil(pagination.total / perPage) },
+              (_, i) => i + 1
+            ).slice(
+              Math.max(0, pagination.current_page - 3),
+              Math.min(Math.ceil(pagination.total / perPage), pagination.current_page + 2)
+            ).map((page) => (
               <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-3 py-1 border rounded-md ${
-                  currentPage === 1
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                key={page}
+                className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium ${
+                  page === pagination.current_page
+                    ? 'bg-blue-50 text-blue-600 z-10'
+                    : 'text-gray-500 hover:bg-gray-50'
                 }`}
+                onClick={() => handlePageChange(page)}
               >
-                Anterior
+                {page}
               </button>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-1 border rounded-md ${
-                  currentPage === totalPages
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Próxima
-              </button>
-            </div>
-          </div>
+            ))}
+            
+            <button
+              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+              onClick={() => handlePageChange(pagination.current_page + 1)}
+              disabled={pagination.current_page >= Math.ceil(pagination.total / perPage)}
+            >
+              <span className="sr-only">Próxima</span>
+              &raquo;
+            </button>
+          </nav>
         </div>
       )}
     </div>
