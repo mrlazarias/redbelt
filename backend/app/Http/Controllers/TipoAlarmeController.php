@@ -33,7 +33,8 @@ class TipoAlarmeController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $tipoAlarme = TipoAlarme::findOrFail($id);
+        return response()->json($tipoAlarme);
     }
 
     /**
@@ -41,7 +42,14 @@ class TipoAlarmeController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $tipoAlarme = TipoAlarme::findOrFail($id);
+        
+        $data = $request->validate([
+            'nome' => 'required|string|unique:tipo_alarmes,nome,' . $id,
+        ]);
+        
+        $tipoAlarme->update($data);
+        return response()->json($tipoAlarme);
     }
 
     /**
@@ -49,6 +57,9 @@ class TipoAlarmeController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $tipoAlarme = TipoAlarme::findOrFail($id);
+        $tipoAlarme->delete();
+        
+        return response()->json(null, 204);
     }
 }
