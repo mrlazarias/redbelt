@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Models\Alarme;
+use App\Models\TipoAlarme;
+use App\Observers\AlarmeObserver;
+use App\Observers\TipoAlarmeObserver;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
@@ -33,5 +36,9 @@ class AppServiceProvider extends ServiceProvider
                 $alarme->save();
             }
         });
+        
+        // Registrar observadores
+        Alarme::observe(AlarmeObserver::class);
+        TipoAlarme::observe(TipoAlarmeObserver::class);
     }
 }
