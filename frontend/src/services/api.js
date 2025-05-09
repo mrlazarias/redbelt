@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Criando uma instância do axios com configurações padrão
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -31,14 +31,10 @@ api.interceptors.response.use(
   (error) => {
     // Tratamento de erro de autenticação
     if (error.response && error.response.status === 401) {
-      // Se o token expirou ou é inválido, redirecionar para o login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      console.error('Erro de autenticação na API:', error.response.data);
       
-      // Se não estiver na página de login, redirecionar para login
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
-      }
+      // Não redirecionar para login neste caso, já que estamos usando token fixo
+      // para fins de teste
     }
     
     return Promise.reject(error);
